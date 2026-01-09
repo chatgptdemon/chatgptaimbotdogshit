@@ -14,8 +14,13 @@ local SUPABASE_KEY = "sb_publishable_IfCkMf8pXtHoCVhovuOjbA_OI-E0UL8"
 local USER_KEY = getgenv().KEY or "PUT-KEY-HERE"
 
 -- ===== REQUEST FUNCTION =====
+local httpRequest = syn and syn.request
+	or http_request
+	or request
+	or fluxus and fluxus.request
+
 local function request(method, url, body)
-	return HttpService:RequestAsync({
+	local res = httpRequest({
 		Url = url,
 		Method = method,
 		Headers = {
@@ -25,7 +30,13 @@ local function request(method, url, body)
 		},
 		Body = body and HttpService:JSONEncode(body) or nil
 	})
+
+	return {
+		Success = res.StatusCode >= 200 and res.StatusCode < 300,
+		Body = res.Body
+	}
 end
+
 
 -- ===== VALIDATE KEY =====
 local function validateKey(key)
