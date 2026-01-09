@@ -1,3 +1,5 @@
+-- Linoria + Lock-On Aimbot + Movement Hub (NO THEMES)
+
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
 
@@ -23,8 +25,7 @@ local Tabs = {
 	UI = Window:AddTab('UI Settings'),
 }
 
-local Group = Tabs.Main:AddLeftGroupbox('Main')
-local ThemeGroup = Tabs.UI:AddRightGroupbox('Theme')
+local Group = Tabs.Main:AddLeftGroupbox('Little Saint James Armory')
 
 -- ===== CHARACTER =====
 local character, humanoid, hrp
@@ -38,7 +39,7 @@ end
 if player.Character then onCharacter(player.Character) end
 player.CharacterAdded:Connect(onCharacter)
 
--- ===== AIMBOT STATE (NEW SYSTEM) =====
+-- ===== AIMBOT STATE =====
 local AimbotEnabled = false
 local LOCK_KEY = Enum.KeyCode.E
 
@@ -74,10 +75,7 @@ local function lockToHead(head)
 			return
 		end
 
-		camera.CFrame = CFrame.new(
-			camera.CFrame.Position,
-			targetHead.Position
-		)
+		camera.CFrame = CFrame.new(camera.CFrame.Position, targetHead.Position)
 	end)
 end
 
@@ -87,13 +85,11 @@ UserInputService.InputBegan:Connect(function(input, gp)
 	if input.KeyCode ~= LOCK_KEY then return end
 	if not AimbotEnabled then return end
 
-	-- Toggle off
 	if locked then
 		clearLock()
 		return
 	end
 
-	-- Try locking to hovered character
 	local target = mouse.Target
 	if not target then return end
 
@@ -108,7 +104,7 @@ UserInputService.InputBegan:Connect(function(input, gp)
 	end
 end)
 
--- ===== MOVEMENT STATE =====
+-- ===== MOVEMENT =====
 local InfiniteJumpEnabled = false
 local ClickTPEnabled = false
 local FlyEnabled = false
@@ -178,7 +174,7 @@ RunService.Stepped:Connect(function()
 end)
 
 -- ===== UI CONTROLS =====
-Group:AddToggle('Epstein's Lock-On', {
+Group:AddToggle('Aimbot', {
 	Text = 'Lock On (Press E)',
 	Default = false,
 	Callback = function(v)
@@ -200,13 +196,13 @@ Group:AddToggle('ClickTP', {
 })
 
 Group:AddToggle('Fly', {
-	Text = 'Redbull gives you wings',
+	Text = 'go to heaven',
 	Default = false,
 	Callback = function(v) FlyEnabled = v end
 })
 
 Group:AddToggle('Noclip', {
-	Text = 'Noclip',
+	Text = 'turn into emmetts dad',
 	Default = false,
 	Callback = function(v) NoclipEnabled = v end
 })
@@ -226,31 +222,6 @@ Group:AddSlider('Erik Power', {
 	Max = 500,
 	Callback = function(v) JumpPowerValue = v end
 })
-
--- ===== THEME =====
-local RainbowEnabled = false
-local Hue = 0
-
-ThemeGroup:AddDropdown('ThemeSelect', {
-	Text = 'Eptheme',
-	Default = 'Dark',
-	Values = { 'Dark', 'Light', 'RGB' },
-	Callback = function(theme)
-		if theme == "RGB" then
-			RainbowEnabled = true
-		else
-			RainbowEnabled = false
-			Library:SetTheme(theme)
-		end
-	end
-})
-
-RunService.RenderStepped:Connect(function(dt)
-	if RainbowEnabled then
-		Hue = (Hue + dt * 0.25) % 1
-		Library:SetAccentColor(Color3.fromHSV(Hue, 1, 1))
-	end
-end)
 
 -- ===== MENU KEY =====
 local MenuGroup = Tabs.UI:AddLeftGroupbox('Menu')
