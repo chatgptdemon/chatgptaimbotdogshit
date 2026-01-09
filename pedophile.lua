@@ -87,8 +87,6 @@ local function lockOn(head, hum)
 	end)
 end
 
--- ===== INPUT =====
-UserInputService.InputBegan:Connect(function(input, gp)
 	-- ===== INPUT (AIMBOT + CLICK TP) =====
 UserInputService.InputBegan:Connect(function(input, gp)
 	if gp then return end
