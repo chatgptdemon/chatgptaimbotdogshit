@@ -124,7 +124,7 @@ local MyButton2 = MyButton:AddButton({
 -- Groupbox:AddLabel
 -- Arguments: Text, DoesWrap
 LeftGroupBox:AddLabel('This is a label')
-LeftGroupBox:AddLabel('This is a label\n\nwhich wraps its text!', true)
+LeftGroupBox:AddLabel('This is a label\n\nwhich wraps its text! hedef.', true)
 
 -- Groupbox:AddDivider
 -- Arguments: None
