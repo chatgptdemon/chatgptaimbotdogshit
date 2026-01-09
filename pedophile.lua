@@ -1,7 +1,11 @@
--- Linoria + Lock-On Aimbot + Movement Hub (NO THEMES)
+-- Linoria + Lock-On Aimbot + Movement Hub (CLEAN + FIXED)
 
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
+
+-- REQUIRED FOR LINORIA
+local Toggles = getgenv().Toggles
+local Options = getgenv().Options
 
 -- ===== SERVICES =====
 local Players = game:GetService("Players")
@@ -39,72 +43,15 @@ end
 if player.Character then onCharacter(player.Character) end
 player.CharacterAdded:Connect(onCharacter)
 
--- ===== AIMBOT STATE =====
+-- ===== AIMBOT SETTINGS =====
 local AimbotEnabled = false
 local LOCK_KEY = Enum.KeyCode.E
 
 local locked = false
-local targetHead
-local renderConnection
+local targetHead = nil
+local renderConn = nil
 
-local function clearLock()
-	locked = false
-	targetHead = nil
-
-	if renderConnection then
-		renderConnection:Disconnect()
-		renderConnection = nil
-	end
-
-	camera.CameraType = Enum.CameraType.Custom
-end
-
-local function lockToHead(head)
-	clearLock()
-
-	targetHead = head
-	locked = true
-	camera.CameraType = Enum.CameraType.Scriptable
-
-	renderConnection = RunService.RenderStepped:Connect(function()
-		local char = targetHead and targetHead.Parent
-		local hum = char and char:FindFirstChildOfClass("Humanoid")
-
-		if not targetHead or not hum or hum.Health <= 0 then
-			clearLock()
-			return
-		end
-
-		camera.CFrame = CFrame.new(camera.CFrame.Position, targetHead.Position)
-	end)
-end
-
--- ===== AIMBOT INPUT =====
-UserInputService.InputBegan:Connect(function(input, gp)
-	if gp then return end
-	if input.KeyCode ~= LOCK_KEY then return end
-	if not AimbotEnabled then return end
-
-	if locked then
-		clearLock()
-		return
-	end
-
-	local target = mouse.Target
-	if not target then return end
-
-	local model = target:FindFirstAncestorOfClass("Model")
-	if not model then return end
-
-	local hum = model:FindFirstChildOfClass("Humanoid")
-	local head = model:FindFirstChild("Head")
-
-	if hum and head and hum.Health > 0 then
-		lockToHead(head)
-	end
-end)
-
--- ===== MOVEMENT =====
+-- ===== MOVEMENT STATE =====
 local InfiniteJumpEnabled = false
 local ClickTPEnabled = false
 local FlyEnabled = false
@@ -113,12 +60,77 @@ local NoclipEnabled = false
 local WalkSpeedValue = 16
 local JumpPowerValue = 50
 
--- ===== CLICK TP =====
+-- ===== AIMBOT FUNCTIONS =====
+local function clearLock()
+	locked = false
+	targetHead = nil
+
+	if renderConn then
+		renderConn:Disconnect()
+		renderConn = nil
+	end
+
+	camera.CameraType = Enum.CameraType.Custom
+end
+
+local function lockToHead(head)
+	clearLock()
+
+	locked = true
+	targetHead = head
+	camera.CameraType = Enum.CameraType.Scriptable
+
+	renderConn = RunService.RenderStepped:Connect(function()
+		if not AimbotEnabled
+			or not targetHead
+			or not targetHead.Parent then
+			clearLock()
+			return
+		end
+
+		local hum = targetHead.Parent:FindFirstChildOfClass("Humanoid")
+		if not hum or hum.Health <= 0 then
+			clearLock()
+			return
+		end
+
+		camera.CFrame = CFrame.new(
+			camera.CFrame.Position,
+			targetHead.Position
+		)
+	end)
+end
+
+-- ===== INPUT (AIMBOT + CLICK TP) =====
 UserInputService.InputBegan:Connect(function(input, gp)
 	if gp then return end
-	if input.UserInputType ~= Enum.UserInputType.MouseButton2 then return end
-	if ClickTPEnabled and hrp then
-		hrp.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))
+
+	-- AIMBOT TOGGLE (E)
+	if input.KeyCode == LOCK_KEY and AimbotEnabled then
+		if locked then
+			clearLock()
+			return
+		end
+
+		local hit = mouse.Target
+		if not hit then return end
+
+		local model = hit:FindFirstAncestorOfClass("Model")
+		if not model then return end
+
+		local hum = model:FindFirstChildOfClass("Humanoid")
+		local head = model:FindFirstChild("Head")
+
+		if hum and head and hum.Health > 0 then
+			lockToHead(head)
+		end
+	end
+
+	-- CLICK TP (Right Click)
+	if input.UserInputType == Enum.UserInputType.MouseButton2 then
+		if ClickTPEnabled and hrp then
+			hrp.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))
+		end
 	end
 end)
 
@@ -175,7 +187,7 @@ end)
 
 -- ===== UI CONTROLS =====
 Group:AddToggle('Aimbot', {
-	Text = 'Lock On (Press E)',
+	Text = 'Aimbot (E to lock)',
 	Default = false,
 	Callback = function(v)
 		AimbotEnabled = v
@@ -184,42 +196,44 @@ Group:AddToggle('Aimbot', {
 })
 
 Group:AddToggle('InfJump', {
-	Text = 'Erik Mode',
+	Text = 'Infinite Jump',
 	Default = false,
 	Callback = function(v) InfiniteJumpEnabled = v end
 })
 
 Group:AddToggle('ClickTP', {
-	Text = 'teleport to LSJ island',
+	Text = 'Click Teleport',
 	Default = false,
 	Callback = function(v) ClickTPEnabled = v end
 })
 
 Group:AddToggle('Fly', {
-	Text = 'go to heaven',
+	Text = 'Fly',
 	Default = false,
 	Callback = function(v) FlyEnabled = v end
 })
 
 Group:AddToggle('Noclip', {
-	Text = 'turn into emmetts dad',
+	Text = 'Noclip',
 	Default = false,
 	Callback = function(v) NoclipEnabled = v end
 })
 
 Group:AddSlider('WalkSpeed', {
-	Text = 'Marcus Power',
+	Text = 'WalkSpeed',
 	Default = 16,
 	Min = 16,
 	Max = 500,
+	Rounding = 0,
 	Callback = function(v) WalkSpeedValue = v end
 })
 
-Group:AddSlider('Erik Power', {
-	Text = 'Jump Power',
+Group:AddSlider('JumpPower', {
+	Text = 'JumpPower',
 	Default = 50,
 	Min = 0,
 	Max = 500,
+	Rounding = 0,
 	Callback = function(v) JumpPowerValue = v end
 })
 
@@ -231,4 +245,6 @@ MenuGroup:AddLabel('Menu Toggle'):AddKeyPicker('MenuKeybind', {
 })
 
 Library.ToggleKeybind = Options.MenuKeybind
+
+-- ===== CLEANUP =====
 Library:OnUnload(clearLock)
