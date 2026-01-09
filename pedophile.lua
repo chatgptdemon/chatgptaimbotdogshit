@@ -1,4 +1,4 @@
--- Linoria + Lock-On Aimbot + Movement Hub (FIXED)
+-- Linoria + Lock-On Aimbot + Movement Hub (FULL + THEME DROPDOWN)
 
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -98,8 +98,23 @@ UserInputService.InputBegan:Connect(function(input, gp)
 		if AimbotEnabled and isFirstPerson() then
 			local model = hit:FindFirstAncestorWhichIsA("Model")
 			if model then
-				local head = model:FindFirstChild("Head")
-				if head and hit == head then
+if AimbotEnabled and isFirstPerson() then
+	local model = hit:FindFirstAncestorWhichIsA("Model")
+	if model then
+		local head = model:FindFirstChild("Head")
+		local hum = model:FindFirstChildOfClass("Humanoid")
+
+		if head and hum and hum.Health > 0 then
+			if locked then
+				unlock()
+			else
+				lockOn(head, hum)
+			end
+			return
+		end
+	end
+end
+
 					if locked then
 						unlock()
 					else
@@ -137,13 +152,11 @@ RunService.RenderStepped:Connect(function()
 
 	if FlyEnabled and hrp then
 		if not flyVel then
-			flyVel = Instance.new("BodyVelocity")
+			flyVel = Instance.new("BodyVelocity", hrp)
 			flyVel.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-			flyVel.Parent = hrp
 
-			flyGyro = Instance.new("BodyGyro")
+			flyGyro = Instance.new("BodyGyro", hrp)
 			flyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-			flyGyro.Parent = hrp
 		end
 
 		local dir = Vector3.zero
@@ -165,7 +178,6 @@ end)
 -- ===== NOCLIP =====
 RunService.Stepped:Connect(function()
 	if not character then return end
-
 	for _, v in ipairs(character:GetDescendants()) do
 		if v:IsA("BasePart") then
 			v.CanCollide = not NoclipEnabled
@@ -173,9 +185,9 @@ RunService.Stepped:Connect(function()
 	end
 end)
 
--- ===== UI =====
-Group:AddToggle('Up the blick with mr ep nigga', {
-	Text = 'Aim onto the Oppositions',
+-- ===== UI CONTROLS =====
+Group:AddToggle('Aimbot', {
+	Text = 'up the blick on the opps nigga',
 	Default = false,
 	Callback = function(v)
 		AimbotEnabled = v
@@ -184,31 +196,31 @@ Group:AddToggle('Up the blick with mr ep nigga', {
 })
 
 Group:AddToggle('InfJump', {
-	Text = 'Erik Jumping over the border',
+	Text = 'Erik Mode',
 	Default = false,
 	Callback = function(v) InfiniteJumpEnabled = v end
 })
 
 Group:AddToggle('ClickTP', {
-	Text = 'TP to epstein island',
+	Text = 'teleport to LSJ island',
 	Default = false,
 	Callback = function(v) ClickTPEnabled = v end
 })
 
 Group:AddToggle('Fly', {
-	Text = 'Fly like a kite',
+	Text = 'go to heaven',
 	Default = false,
 	Callback = function(v) FlyEnabled = v end
 })
 
 Group:AddToggle('Noclip', {
-	Text = 'Noclip into the girls bathroom',
+	Text = 'turn into emmetts dad',
 	Default = false,
 	Callback = function(v) NoclipEnabled = v end
 })
 
 Group:AddSlider('WalkSpeed', {
-	Text = 'Marcus Mode',
+	Text = 'Marcus Power',
 	Default = 16,
 	Min = 16,
 	Max = 500,
@@ -216,8 +228,8 @@ Group:AddSlider('WalkSpeed', {
 	Callback = function(v) WalkSpeedValue = v end
 })
 
-Group:AddSlider('JumpPower', {
-	Text = 'Erik Mode',
+Group:AddSlider('Erik Power', {
+	Text = 'Jump Power',
 	Default = 50,
 	Min = 0,
 	Max = 500,
@@ -225,14 +237,31 @@ Group:AddSlider('JumpPower', {
 	Callback = function(v) JumpPowerValue = v end
 })
 
--- ===== RGB THEME =====
+-- ===== THEME SYSTEM =====
 local RainbowEnabled = false
 local Hue = 0
 
-ThemeGroup:AddToggle('RainbowTheme', {
-	Text = 'Gay Theme',
-	Default = false,
-	Callback = function(v) RainbowEnabled = v end
+local function ApplyTheme(theme)
+	if theme == "Dark" then
+		RainbowEnabled = false
+		Library:SetTheme("Dark")
+		Library:SetAccentColor(Color3.fromRGB(0, 170, 255))
+
+	elseif theme == "Light" then
+		RainbowEnabled = false
+		Library:SetTheme("Light")
+		Library:SetAccentColor(Color3.fromRGB(0, 120, 255))
+
+	elseif theme == "RGB" then
+		RainbowEnabled = true
+	end
+end
+
+ThemeGroup:AddDropdown('ThemeSelect', {
+	Text = 'Eptheme',
+	Default = 'Dark',
+	Values = { 'Dark', 'Light', 'RGB' },
+	Callback = ApplyTheme
 })
 
 RunService.RenderStepped:Connect(function(dt)
@@ -242,7 +271,7 @@ RunService.RenderStepped:Connect(function(dt)
 	end
 end)
 
--- ===== UI KEYBIND =====
+-- ===== MENU KEY =====
 local MenuGroup = Tabs.UI:AddLeftGroupbox('Menu')
 MenuGroup:AddLabel('Menu Toggle'):AddKeyPicker('MenuKeybind', {
 	Default = 'V',
