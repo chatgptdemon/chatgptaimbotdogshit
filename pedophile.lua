@@ -64,29 +64,40 @@ end
 local function unlock()
 	locked = false
 	targetHead = nil
-	if renderConn then renderConn:Disconnect() renderConn = nil end
-	if diedConn then diedConn:Disconnect() diedConn = nil end
+
+	if renderConn then
+		renderConn:Disconnect()
+		renderConn = nil
+	end
+
+	if diedConn then
+		diedConn:Disconnect()
+		diedConn = nil
+	end
+
 	camera.CameraType = Enum.CameraType.Custom
 end
 
 local function lockOn(head, hum)
+	unlock() -- safety reset
+
 	locked = true
 	targetHead = head
 	camera.CameraType = Enum.CameraType.Scriptable
 
-	if hum then
-		diedConn = hum.Died:Connect(unlock)
-	end
+	diedConn = hum.Died:Connect(unlock)
 
 	renderConn = RunService.RenderStepped:Connect(function()
 		if not AimbotEnabled or not targetHead or not targetHead.Parent then
 			unlock()
 			return
 		end
+
 		camera.CFrame = CFrame.new(camera.CFrame.Position, targetHead.Position)
 	end)
 end
 
+-- ===== INPUT (AIMBOT + CLICK TP) =====
 UserInputService.InputBegan:Connect(function(input, gp)
 	if gp then return end
 	if input.UserInputType ~= Enum.UserInputType.MouseButton2 then return end
@@ -94,7 +105,7 @@ UserInputService.InputBegan:Connect(function(input, gp)
 	local hit = mouse.Target
 	if not hit then return end
 
-	-- AIMBOT
+	-- AIMBOT: right click ANY body part → lock to head
 	if AimbotEnabled and isFirstPerson() then
 		local model = hit:FindFirstAncestorOfClass("Model")
 		if model then
@@ -230,12 +241,10 @@ local function ApplyTheme(theme)
 		RainbowEnabled = false
 		Library:SetTheme("Dark")
 		Library:SetAccentColor(Color3.fromRGB(0, 170, 255))
-
 	elseif theme == "Light" then
 		RainbowEnabled = false
 		Library:SetTheme("Light")
 		Library:SetAccentColor(Color3.fromRGB(0, 120, 255))
-
 	elseif theme == "RGB" then
 		RainbowEnabled = true
 	end
