@@ -8,7 +8,7 @@ local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
 
 -- Window
 local Window = Library:CreateWindow({
-	Title = 'Aimbot Hood Rat',
+	Title = 'Aimbot Fuck nigga Rat',
 	Center = true,
 	AutoShow = true,
 })
@@ -96,7 +96,7 @@ end)
 -- ===== UI TOGGLE =====
 
 Group:AddToggle('LockOnAimbot', {
-	Text = 'Lock-On Aimbot',
+	Text = 'Up the blick bitch nigga',
 	Default = false,
 	Tooltip = 'Right-click heads in first person',
 
