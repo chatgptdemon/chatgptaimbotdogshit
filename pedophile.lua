@@ -13,7 +13,7 @@ local Window = Library:CreateWindow({
     -- Position and Size are also valid options here
     -- but you do not need to define them unless you are changing them :)
 
-    Title = 'Epstein Hub V2 | discord.gg/aprZtuGyxg',
+    Title = 'Epstein Hub V2 | EARLY ACCESS',
     Center = true,
     AutoShow = true,
     TabPadding = 8,
