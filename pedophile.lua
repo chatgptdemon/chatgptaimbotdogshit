@@ -1,11 +1,11 @@
--- Linoria + Lock-On Aimbot + Infinite Jump + Click TP
+-- Linoria + Lock-On Aimbot + Movement Hub
 
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
 
 -- ===== WINDOW =====
 local Window = Library:CreateWindow({
-	Title = 'Epstein Hub',
+	Title = 'Epstein Hub V2',
 	Center = true,
 	AutoShow = true,
 })
@@ -18,6 +18,27 @@ local Tabs = {
 
 local Group = Tabs.Main:AddLeftGroupbox('Little Saint James Armory')
 
+local ThemeGroup = Tabs.UI:AddRightGroupbox('Theme')
+
+local RainbowEnabled = false
+local Hue = 0
+
+ThemeGroup:AddToggle('GayTheme', {
+	Text = 'Gay Theme',
+	Default = false,
+	Callback = function(v)
+		RainbowEnabled = v
+	end
+})
+
+RunService.RenderStepped:Connect(function(dt)
+	if RainbowEnabled then
+		Hue = (Hue + dt * 0.25) % 1
+		Library:SetAccentColor(Color3.fromHSV(Hue, 1, 1))
+	end
+end)
+
+
 -- ===== SERVICES =====
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -27,6 +48,20 @@ local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 local mouse = player:GetMouse()
 
+-- ===== CHARACTER =====
+local character, humanoid, hrp
+
+local function onCharacter(char)
+	character = char
+	humanoid = char:WaitForChild("Humanoid")
+	hrp = char:WaitForChild("HumanoidRootPart")
+end
+
+if player.Character then
+	onCharacter(player.Character)
+end
+player.CharacterAdded:Connect(onCharacter)
+
 -- ===== AIMBOT STATE =====
 local AimbotEnabled = false
 local locked = false
@@ -34,9 +69,14 @@ local targetHead
 local renderConn
 local diedConn
 
--- ===== MISC STATE =====
+-- ===== MOVEMENT STATE =====
 local InfiniteJumpEnabled = false
 local ClickTPEnabled = false
+local FlyEnabled = false
+local NoclipEnabled = false
+
+local WalkSpeedValue = 16
+local JumpPowerValue = 50
 
 -- ===== UTIL =====
 local function isFirstPerson()
@@ -46,20 +86,18 @@ end
 local function unlock()
 	locked = false
 	targetHead = nil
-
 	if renderConn then renderConn:Disconnect() renderConn = nil end
 	if diedConn then diedConn:Disconnect() diedConn = nil end
-
 	camera.CameraType = Enum.CameraType.Custom
 end
 
-local function lockOn(head, humanoid)
+local function lockOn(head, hum)
 	locked = true
 	targetHead = head
 	camera.CameraType = Enum.CameraType.Scriptable
 
-	if humanoid then
-		diedConn = humanoid.Died:Connect(unlock)
+	if hum then
+		diedConn = hum.Died:Connect(unlock)
 	end
 
 	renderConn = RunService.RenderStepped:Connect(function()
@@ -67,24 +105,19 @@ local function lockOn(head, humanoid)
 			unlock()
 			return
 		end
-
 		camera.CFrame = CFrame.new(camera.CFrame.Position, targetHead.Position)
 	end)
 end
 
--- ===== INPUT HANDLER =====
+-- ===== INPUT =====
 UserInputService.InputBegan:Connect(function(input, gp)
 	if gp then return end
 
-	-- RIGHT CLICK
 	if input.UserInputType == Enum.UserInputType.MouseButton2 then
 		local hit = mouse.Target
 		if not hit then return end
 
-		local character = player.Character
-		local hrp = character and character:FindFirstChild("HumanoidRootPart")
-
-		-- AIMBOT (HEAD PRIORITY)
+		-- AIMBOT
 		if AimbotEnabled and isFirstPerson() then
 			local model = hit:FindFirstAncestorWhichIsA("Model")
 			if model then
@@ -93,17 +126,18 @@ UserInputService.InputBegan:Connect(function(input, gp)
 					if locked then
 						unlock()
 					else
-						local humanoid = model:FindFirstChildOfClass("Humanoid")
-						if not humanoid or humanoid.Health <= 0 then return end
-						lockOn(head, humanoid)
+						local hum = model:FindFirstChildOfClass("Humanoid")
+						if hum and hum.Health > 0 then
+							lockOn(head, hum)
+						end
 					end
 					return
 				end
 			end
 		end
 
-		-- CLICK TP (GROUND / PART)
-		if ClickTPEnabled and hrp and hit:IsA("BasePart") then
+		-- CLICK TP
+		if ClickTPEnabled and hrp then
 			hrp.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))
 		end
 	end
@@ -111,17 +145,57 @@ end)
 
 -- ===== INFINITE JUMP =====
 UserInputService.JumpRequest:Connect(function()
-	if not InfiniteJumpEnabled then return end
-
-	local character = player.Character
-	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	if humanoid and humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
+	if InfiniteJumpEnabled and humanoid and humanoid.Health > 0 then
 		humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
 	end
 end)
 
--- ===== UI TOGGLES =====
-Group:AddToggle('Aim The Lil Ep Blick', {
+-- ===== FLY =====
+local flyVel, flyGyro
+
+RunService.RenderStepped:Connect(function()
+	if humanoid then
+		humanoid.WalkSpeed = WalkSpeedValue
+		humanoid.JumpPower = JumpPowerValue
+	end
+
+	if FlyEnabled and hrp then
+		if not flyVel then
+			flyVel = Instance.new("BodyVelocity", hrp)
+			flyVel.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+			flyGyro = Instance.new("BodyGyro", hrp)
+			flyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+		end
+
+		local dir = Vector3.zero
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir += camera.CFrame.LookVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir -= camera.CFrame.LookVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir -= camera.CFrame.RightVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir += camera.CFrame.RightVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.yAxis end
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.yAxis end
+
+		flyVel.Velocity = dir * 80
+		flyGyro.CFrame = camera.CFrame
+	else
+		if flyVel then flyVel:Destroy() flyVel = nil end
+		if flyGyro then flyGyro:Destroy() flyGyro = nil end
+	end
+end)
+
+-- ===== NOCLIP =====
+RunService.Stepped:Connect(function()
+	if NoclipEnabled and character then
+		for _, v in ipairs(character:GetDescendants()) do
+			if v:IsA("BasePart") then
+				v.CanCollide = false
+			end
+		end
+	end
+end)
+
+-- ===== UI =====
+Group:AddToggle('Up the blick with mr ep nigga', {
 	Text = 'Aim onto the Oppositions',
 	Default = false,
 	Callback = function(v)
@@ -130,31 +204,54 @@ Group:AddToggle('Aim The Lil Ep Blick', {
 	end
 })
 
-Group:AddToggle('Jump over israel', {
+Group:AddToggle('TP to epstein island', {
 	Text = 'Wama jump?',
 	Default = false,
-	Callback = function(v)
-		InfiniteJumpEnabled = v
-	end
+	Callback = function(v) InfiniteJumpEnabled = v end
 })
 
-Group:AddToggle('TP to Island', {
+Group:AddToggle('ClickTP', {
 	Text = 'TP',
 	Default = false,
-	Tooltip = 'Right-click ground to teleport to island',
-	Callback = function(v)
-		ClickTPEnabled = v
-	end
+	Callback = function(v) ClickTPEnabled = v end
+})
+
+Group:AddToggle('Fly to Heaven', {
+	Text = 'Fly to Heaven',
+	Default = false,
+	Callback = function(v) FlyEnabled = v end
+})
+
+Group:AddToggle('Ghost the feds', {
+	Text = 'Ghost the feds',
+	Default = false,
+	Callback = function(v) NoclipEnabled = v end
+})
+
+Group:AddSlider('Thug Life', {
+	Text = 'Marcus Stamina',
+	Default = 16,
+	Min = 16,
+	Max = 500,
+	Rounding = 0,
+	Callback = function(v) WalkSpeedValue = v end
+})
+
+Group:AddSlider('Over The Border', {
+	Text = 'Erik Jump',
+	Default = 50,
+	Min = 0,
+	Max = 500,
+	Rounding = 0,
+	Callback = function(v) JumpPowerValue = v end
 })
 
 -- ===== UI KEYBIND =====
 local MenuGroup = Tabs.UI:AddLeftGroupbox('Menu')
-
 MenuGroup:AddLabel('Menu Toggle'):AddKeyPicker('MenuKeybind', {
 	Default = 'V',
 	Text = 'Toggle Menu',
 })
-
 Library.ToggleKeybind = Options.MenuKeybind
 
 -- ===== CLEANUP =====
