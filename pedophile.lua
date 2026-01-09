@@ -88,49 +88,38 @@ local function lockOn(head, hum)
 end
 
 -- ===== INPUT =====
+-- ===== INPUT (AIMBOT + CLICK TP) =====
 UserInputService.InputBegan:Connect(function(input, gp)
 	if gp then return end
 
-	if input.UserInputType == Enum.UserInputType.MouseButton2 then
-		local hit = mouse.Target
-		if not hit then return end
+	if input.UserInputType ~= Enum.UserInputType.MouseButton2 then
+		return
+	end
 
-		if AimbotEnabled and isFirstPerson() then
-			local model = hit:FindFirstAncestorWhichIsA("Model")
-			if model then
-if AimbotEnabled and isFirstPerson() then
-	local model = hit:FindFirstAncestorWhichIsA("Model")
-	if model then
-		local head = model:FindFirstChild("Head")
-		local hum = model:FindFirstChildOfClass("Humanoid")
+	local hit = mouse.Target
+	if not hit then return end
 
-		if head and hum and hum.Health > 0 then
-			if locked then
-				unlock()
-			else
-				lockOn(head, hum)
+	-- AIMBOT: RIGHT CLICK ANY BODY PART → LOCK TO HEAD
+	if AimbotEnabled and isFirstPerson() then
+		local model = hit:FindFirstAncestorOfClass("Model")
+		if model then
+			local hum = model:FindFirstChildOfClass("Humanoid")
+			local head = model:FindFirstChild("Head")
+
+			if hum and head and hum.Health > 0 then
+				if locked then
+					unlock()
+				else
+					lockOn(head, hum)
+				end
+				return
 			end
-			return
 		end
 	end
-end
 
-					if locked then
-						unlock()
-					else
-						local hum = model:FindFirstChildOfClass("Humanoid")
-						if hum and hum.Health > 0 then
-							lockOn(head, hum)
-						end
-					end
-					return
-				end
-			end
-		end
-
-		if ClickTPEnabled and hrp then
-			hrp.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))
-		end
+	-- CLICK TP (ONLY IF NOT AIMING)
+	if ClickTPEnabled and hrp then
+		hrp.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))
 	end
 end)
 
