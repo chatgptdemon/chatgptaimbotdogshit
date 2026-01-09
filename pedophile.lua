@@ -1,23 +1,24 @@
--- Linoria + Lock-On Aimbot Example
--- GitHub-ready
-
---skid nation nigga
+-- Linoria + Lock-On Aimbot (GitHub-ready)
 
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
 
--- Window
+-- ===== WINDOW =====
 local Window = Library:CreateWindow({
-	Title = 'Aimbot Fuck nigga Rat',
+	Title = 'Aimbot Bitch Nigga',
 	Center = true,
 	AutoShow = true,
 })
 
-local Tab = Window:AddTab('Main')
-local Group = Tab:AddLeftGroupbox('Combat')
+-- ===== TABS =====
+local Tabs = {
+	Main = Window:AddTab('Main'),
+	UI = Window:AddTab('UI Settings'),
+}
 
--- ===== LOCK ON LOGIC =====
+local Group = Tabs.Main:AddLeftGroupbox('Little Saint James Blicky')
 
+-- ===== LOCK-ON LOGIC =====
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -93,12 +94,11 @@ UserInputService.InputBegan:Connect(function(input, gp)
 	lockOn(head, humanoid)
 end)
 
--- ===== UI TOGGLE =====
-
-Group:AddToggle('LockOnAimbot', {
-	Text = 'Up the blick bitch nigga',
+-- ===== AIMBOT TOGGLE =====
+Group:AddToggle('Up the blick bitch nigga', {
+	Text = 'Epsteins Aimbot for arsenal',
 	Default = false,
-	Tooltip = 'Right-click heads in first person',
+	Tooltip = '#Skidnation prevails',
 
 	Callback = function(Value)
 		Enabled = Value
@@ -107,6 +107,16 @@ Group:AddToggle('LockOnAimbot', {
 		end
 	end
 })
+
+local MenuGroup = Tabs.UI:AddLeftGroupbox('Menu')
+
+MenuGroup:AddLabel('Keybinds'):AddKeyPicker('MenuKeybind', {
+	Default = 'V',
+	NoUI = false,
+	Text = 'Toggle Menu',
+})
+
+Library.ToggleKeybind = Options.MenuKeybind
 
 Library:OnUnload(function()
 	unlock()
