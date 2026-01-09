@@ -174,7 +174,7 @@ RunService.Stepped:Connect(function()
 end)
 
 -- ===== UI =====
-Group:AddToggle('Aimbot', {
+Group:AddToggle('Up the blick with mr ep nigga', {
 	Text = 'Aim onto the Oppositions',
 	Default = false,
 	Callback = function(v)
@@ -184,31 +184,31 @@ Group:AddToggle('Aimbot', {
 })
 
 Group:AddToggle('InfJump', {
-	Text = 'Infinite Jump',
+	Text = 'Erik Jumping over the border',
 	Default = false,
 	Callback = function(v) InfiniteJumpEnabled = v end
 })
 
 Group:AddToggle('ClickTP', {
-	Text = 'Click TP',
+	Text = 'TP to epstein island',
 	Default = false,
 	Callback = function(v) ClickTPEnabled = v end
 })
 
 Group:AddToggle('Fly', {
-	Text = 'Fly',
+	Text = 'Fly like a kite',
 	Default = false,
 	Callback = function(v) FlyEnabled = v end
 })
 
 Group:AddToggle('Noclip', {
-	Text = 'Noclip',
+	Text = 'Noclip into the girls bathroom',
 	Default = false,
 	Callback = function(v) NoclipEnabled = v end
 })
 
 Group:AddSlider('WalkSpeed', {
-	Text = 'WalkSpeed',
+	Text = 'Marcus Mode',
 	Default = 16,
 	Min = 16,
 	Max = 500,
@@ -217,7 +217,7 @@ Group:AddSlider('WalkSpeed', {
 })
 
 Group:AddSlider('JumpPower', {
-	Text = 'JumpPower',
+	Text = 'Erik Mode',
 	Default = 50,
 	Min = 0,
 	Max = 500,
@@ -230,7 +230,7 @@ local RainbowEnabled = false
 local Hue = 0
 
 ThemeGroup:AddToggle('RainbowTheme', {
-	Text = 'RGB Theme',
+	Text = 'Gay Theme',
 	Default = false,
 	Callback = function(v) RainbowEnabled = v end
 })
