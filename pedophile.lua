@@ -1,5 +1,3 @@
--- Linoria + Lock-On Aimbot + Movement Hub (FULL + THEME DROPDOWN)
-
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
 
@@ -25,7 +23,7 @@ local Tabs = {
 	UI = Window:AddTab('UI Settings'),
 }
 
-local Group = Tabs.Main:AddLeftGroupbox('Little Saint James Armory')
+local Group = Tabs.Main:AddLeftGroupbox('Main')
 local ThemeGroup = Tabs.UI:AddRightGroupbox('Theme')
 
 -- ===== CHARACTER =====
@@ -40,12 +38,75 @@ end
 if player.Character then onCharacter(player.Character) end
 player.CharacterAdded:Connect(onCharacter)
 
--- ===== AIMBOT STATE =====
+-- ===== AIMBOT STATE (NEW SYSTEM) =====
 local AimbotEnabled = false
+local LOCK_KEY = Enum.KeyCode.E
+
 local locked = false
 local targetHead
-local renderConn
-local diedConn
+local renderConnection
+
+local function clearLock()
+	locked = false
+	targetHead = nil
+
+	if renderConnection then
+		renderConnection:Disconnect()
+		renderConnection = nil
+	end
+
+	camera.CameraType = Enum.CameraType.Custom
+end
+
+local function lockToHead(head)
+	clearLock()
+
+	targetHead = head
+	locked = true
+	camera.CameraType = Enum.CameraType.Scriptable
+
+	renderConnection = RunService.RenderStepped:Connect(function()
+		local char = targetHead and targetHead.Parent
+		local hum = char and char:FindFirstChildOfClass("Humanoid")
+
+		if not targetHead or not hum or hum.Health <= 0 then
+			clearLock()
+			return
+		end
+
+		camera.CFrame = CFrame.new(
+			camera.CFrame.Position,
+			targetHead.Position
+		)
+	end)
+end
+
+-- ===== AIMBOT INPUT =====
+UserInputService.InputBegan:Connect(function(input, gp)
+	if gp then return end
+	if input.KeyCode ~= LOCK_KEY then return end
+	if not AimbotEnabled then return end
+
+	-- Toggle off
+	if locked then
+		clearLock()
+		return
+	end
+
+	-- Try locking to hovered character
+	local target = mouse.Target
+	if not target then return end
+
+	local model = target:FindFirstAncestorOfClass("Model")
+	if not model then return end
+
+	local hum = model:FindFirstChildOfClass("Humanoid")
+	local head = model:FindFirstChild("Head")
+
+	if hum and head and hum.Health > 0 then
+		lockToHead(head)
+	end
+end)
 
 -- ===== MOVEMENT STATE =====
 local InfiniteJumpEnabled = false
@@ -56,74 +117,10 @@ local NoclipEnabled = false
 local WalkSpeedValue = 16
 local JumpPowerValue = 50
 
--- ===== UTIL =====
-local function isFirstPerson()
-	return (camera.Focus.Position - camera.CFrame.Position).Magnitude < 1
-end
-
-local function unlock()
-	locked = false
-	targetHead = nil
-
-	if renderConn then
-		renderConn:Disconnect()
-		renderConn = nil
-	end
-
-	if diedConn then
-		diedConn:Disconnect()
-		diedConn = nil
-	end
-
-	camera.CameraType = Enum.CameraType.Custom
-end
-
-local function lockOn(head, hum)
-	unlock() -- safety reset
-
-	locked = true
-	targetHead = head
-	camera.CameraType = Enum.CameraType.Scriptable
-
-	diedConn = hum.Died:Connect(unlock)
-
-	renderConn = RunService.RenderStepped:Connect(function()
-		if not AimbotEnabled or not targetHead or not targetHead.Parent then
-			unlock()
-			return
-		end
-
-		camera.CFrame = CFrame.new(camera.CFrame.Position, targetHead.Position)
-	end)
-end
-
--- ===== INPUT (AIMBOT + CLICK TP) =====
+-- ===== CLICK TP =====
 UserInputService.InputBegan:Connect(function(input, gp)
 	if gp then return end
 	if input.UserInputType ~= Enum.UserInputType.MouseButton2 then return end
-
-	local hit = mouse.Target
-	if not hit then return end
-
-	-- AIMBOT: right click ANY body part → lock to head
-	if AimbotEnabled and isFirstPerson() then
-		local model = hit:FindFirstAncestorOfClass("Model")
-		if model then
-			local hum = model:FindFirstChildOfClass("Humanoid")
-			local head = model:FindFirstChild("Head")
-
-			if hum and head and hum.Health > 0 then
-				if locked then
-					unlock()
-				else
-					lockOn(head, hum)
-				end
-				return
-			end
-		end
-	end
-
-	-- CLICK TP
 	if ClickTPEnabled and hrp then
 		hrp.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))
 	end
@@ -181,12 +178,12 @@ RunService.Stepped:Connect(function()
 end)
 
 -- ===== UI CONTROLS =====
-Group:AddToggle('Aimbot', {
-	Text = 'up the blick on the opps nigga',
+Group:AddToggle('Epstein's Lock-On', {
+	Text = 'Lock On (Press E)',
 	Default = false,
 	Callback = function(v)
 		AimbotEnabled = v
-		if not v then unlock() end
+		if not v then clearLock() end
 	end
 })
 
@@ -203,13 +200,13 @@ Group:AddToggle('ClickTP', {
 })
 
 Group:AddToggle('Fly', {
-	Text = 'go to heaven',
+	Text = 'Redbull gives you wings',
 	Default = false,
 	Callback = function(v) FlyEnabled = v end
 })
 
 Group:AddToggle('Noclip', {
-	Text = 'turn into emmetts dad',
+	Text = 'Noclip',
 	Default = false,
 	Callback = function(v) NoclipEnabled = v end
 })
@@ -219,7 +216,6 @@ Group:AddSlider('WalkSpeed', {
 	Default = 16,
 	Min = 16,
 	Max = 500,
-	Rounding = 0,
 	Callback = function(v) WalkSpeedValue = v end
 })
 
@@ -228,33 +224,25 @@ Group:AddSlider('Erik Power', {
 	Default = 50,
 	Min = 0,
 	Max = 500,
-	Rounding = 0,
 	Callback = function(v) JumpPowerValue = v end
 })
 
--- ===== THEME SYSTEM =====
+-- ===== THEME =====
 local RainbowEnabled = false
 local Hue = 0
-
-local function ApplyTheme(theme)
-	if theme == "Dark" then
-		RainbowEnabled = false
-		Library:SetTheme("Dark")
-		Library:SetAccentColor(Color3.fromRGB(0, 170, 255))
-	elseif theme == "Light" then
-		RainbowEnabled = false
-		Library:SetTheme("Light")
-		Library:SetAccentColor(Color3.fromRGB(0, 120, 255))
-	elseif theme == "RGB" then
-		RainbowEnabled = true
-	end
-end
 
 ThemeGroup:AddDropdown('ThemeSelect', {
 	Text = 'Eptheme',
 	Default = 'Dark',
 	Values = { 'Dark', 'Light', 'RGB' },
-	Callback = ApplyTheme
+	Callback = function(theme)
+		if theme == "RGB" then
+			RainbowEnabled = true
+		else
+			RainbowEnabled = false
+			Library:SetTheme(theme)
+		end
+	end
 })
 
 RunService.RenderStepped:Connect(function(dt)
@@ -272,6 +260,4 @@ MenuGroup:AddLabel('Menu Toggle'):AddKeyPicker('MenuKeybind', {
 })
 
 Library.ToggleKeybind = Options.MenuKeybind
-
--- ===== CLEANUP =====
-Library:OnUnload(unlock)
+Library:OnUnload(clearLock)
