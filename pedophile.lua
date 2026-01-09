@@ -87,7 +87,6 @@ local function lockOn(head, hum)
 	end)
 end
 
-	-- ===== INPUT (AIMBOT + CLICK TP) =====
 UserInputService.InputBegan:Connect(function(input, gp)
 	if gp then return end
 	if input.UserInputType ~= Enum.UserInputType.MouseButton2 then return end
@@ -95,7 +94,7 @@ UserInputService.InputBegan:Connect(function(input, gp)
 	local hit = mouse.Target
 	if not hit then return end
 
-	-- AIMBOT: right click any body part → lock to head
+	-- AIMBOT
 	if AimbotEnabled and isFirstPerson() then
 		local model = hit:FindFirstAncestorOfClass("Model")
 		if model then
@@ -113,7 +112,7 @@ UserInputService.InputBegan:Connect(function(input, gp)
 		end
 	end
 
-	-- CLICK TP (only if aimbot didn't trigger)
+	-- CLICK TP
 	if ClickTPEnabled and hrp then
 		hrp.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))
 	end
