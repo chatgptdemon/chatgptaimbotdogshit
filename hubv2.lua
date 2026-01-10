@@ -17,7 +17,7 @@ local mouse = plr:GetMouse()
 
 -- window
 local Window = Library:CreateWindow({
-	Title = 'Epstein Hub V2 | EARLY ACCESS 1.0 |',
+	Title = 'Epstein Hub V2 | EARLY ACCESS',
 	Center = true,
 	AutoShow = true
 })
@@ -38,17 +38,12 @@ local noclip = false
 local infJump = false
 local walkSpeed = 16
 
+local AIM_SMOOTH = 0.65 -- light smoothing, accurate
+
 local espCache = {}
 local tracers = {}
 
--- tuning
-local AIM_RANGE = 300
-local AIM_DOT = 0.965
-local AIM_SMOOTH = 0.6 -- very light smoothing
-
---------------------------------------------------
 -- helpers
---------------------------------------------------
 local function char()
 	return plr.Character
 end
@@ -57,37 +52,37 @@ local function hum()
 	return char() and char():FindFirstChildOfClass("Humanoid")
 end
 
--- R15 + R6 safe root resolver
-local function getPart(m)
-	return m:FindFirstChild("Head")
-		or m:FindFirstChild("UpperTorso")
-		or m:FindFirstChild("LowerTorso")
-		or m:FindFirstChild("HumanoidRootPart")
-		or m:FindFirstChild("Torso")
+-- R6 + R15 safe target part
+local function getPart(model)
+	return model:FindFirstChild("Head")
+		or model:FindFirstChild("HumanoidRootPart")
+		or model:FindFirstChild("UpperTorso")
 end
 
-local function alive(m)
-	local h = m:FindFirstChildOfClass("Humanoid")
-	return h and h.Health > 0
+-- team check (ONLY if teams exist)
+local function sameTeam(model)
+	local p = Players:GetPlayerFromCharacter(model)
+	if not p then return false end
+
+	if not plr.Team or not p.Team then
+		return false
+	end
+
+	return p.Team == plr.Team
 end
 
-local function sameTeam(m)
-	local p = Players:GetPlayerFromCharacter(m)
-	return p and p.Team == plr.Team
-end
+-------------------------------------------------
+-- movement
+-------------------------------------------------
 
---------------------------------------------------
 -- infinite jump
---------------------------------------------------
 UIS.JumpRequest:Connect(function()
 	if infJump and hum() then
 		hum():ChangeState(Enum.HumanoidStateType.Jumping)
 	end
 end)
 
---------------------------------------------------
 -- walkspeed + noclip
---------------------------------------------------
 RunService.Stepped:Connect(function()
 	if hum() then
 		hum().WalkSpeed = walkSpeed
@@ -102,9 +97,7 @@ RunService.Stepped:Connect(function()
 	end
 end)
 
---------------------------------------------------
--- click TP
---------------------------------------------------
+-- click tp (right click)
 mouse.Button2Down:Connect(function()
 	if not tpOn then return end
 	if mouse.Hit and char() then
@@ -115,52 +108,52 @@ mouse.Button2Down:Connect(function()
 	end
 end)
 
---------------------------------------------------
--- ESP
---------------------------------------------------
-local function addEsp(m)
-	if espCache[m] then return end
-	espCache[m] = true
+-------------------------------------------------
+-- esp
+-------------------------------------------------
 
-	for _, p in ipairs(m:GetDescendants()) do
+local function addEsp(model)
+	if espCache[model] then return end
+	espCache[model] = true
+
+	for _, p in ipairs(model:GetDescendants()) do
 		if p:IsA("BasePart") then
-			local b = Instance.new("BoxHandleAdornment")
-			b.Name = "ESP"
-			b.Adornee = p
-			b.Size = p.Size
-			b.Color3 = Color3.new(1, 0, 0)
-			b.Transparency = 0.5
-			b.AlwaysOnTop = true
-			b.ZIndex = 5
-			b.Parent = p
+			local box = Instance.new("BoxHandleAdornment")
+			box.Name = "ESP"
+			box.Adornee = p
+			box.Size = p.Size
+			box.Color3 = Color3.new(1, 0, 0)
+			box.Transparency = 0.5
+			box.AlwaysOnTop = true
+			box.ZIndex = 5
+			box.Parent = p
 		end
 	end
 end
 
 local function clearEsp()
 	for m in pairs(espCache) do
-		for _, p in ipairs(m:GetDescendants()) do
-			if p:IsA("BoxHandleAdornment") then
-				p:Destroy()
+		for _, d in ipairs(m:GetDescendants()) do
+			if d:IsA("BoxHandleAdornment") then
+				d:Destroy()
 			end
 		end
 	end
 	espCache = {}
 end
 
---------------------------------------------------
--- Tracers (R15 safe)
---------------------------------------------------
-local function addTracer(m)
-	if tracers[m] then return end
+-------------------------------------------------
+-- tracers
+-------------------------------------------------
 
-	local r = getPart(m)
-	if not r then return end
+local function addTracer(model, part)
+	if tracers[model] then return end
 
 	local a0 = Instance.new("Attachment")
-	local a1 = Instance.new("Attachment")
 	a0.Parent = cam
-	a1.Parent = r
+
+	local a1 = Instance.new("Attachment")
+	a1.Parent = part
 
 	local beam = Instance.new("Beam")
 	beam.Attachment0 = a0
@@ -173,7 +166,7 @@ local function addTracer(m)
 	beam.Transparency = NumberSequence.new(0.25)
 	beam.Parent = cam
 
-	tracers[m] = { beam, a0, a1 }
+	tracers[model] = {beam, a0, a1}
 end
 
 local function clearTracers()
@@ -185,13 +178,15 @@ local function clearTracers()
 	tracers = {}
 end
 
---------------------------------------------------
--- target scan (players + NPCs)
---------------------------------------------------
-local function scan(cb)
+-------------------------------------------------
+-- target scan
+-------------------------------------------------
+
+local function scanTargets(cb)
 	for _, m in ipairs(Workspace:GetChildren()) do
 		if m:IsA("Model") and m ~= char() then
-			if alive(m) and not sameTeam(m) then
+			local h = m:FindFirstChildOfClass("Humanoid")
+			if h and h.Health > 0 and not sameTeam(m) then
 				local r = getPart(m)
 				if r then
 					cb(m, r)
@@ -201,38 +196,39 @@ local function scan(cb)
 	end
 end
 
---------------------------------------------------
--- ESP / Tracers loop
---------------------------------------------------
+-------------------------------------------------
+-- esp + tracers loop (independent)
+-------------------------------------------------
+
 RunService.RenderStepped:Connect(function()
 	if not espOn and not tracerOn then return end
 
-	scan(function(m)
+	scanTargets(function(m, r)
 		if espOn then
 			addEsp(m)
 		end
+
 		if tracerOn then
-			addTracer(m)
+			addTracer(m, r)
 		end
 	end)
 end)
 
---------------------------------------------------
--- Aimbot
---------------------------------------------------
-local function getTarget()
-	local best, bestDist
-	bestDist = math.huge
+-------------------------------------------------
+-- aimbot
+-------------------------------------------------
 
+local function getAimTarget()
+	local best, bestDist = nil, math.huge
 	local camPos = cam.CFrame.Position
 	local camDir = cam.CFrame.LookVector
 
-	scan(function(_, r)
+	scanTargets(function(_, r)
 		local v = r.Position - camPos
 		local d = v.Magnitude
-		if d < AIM_RANGE then
+		if d < 300 then
 			local dot = camDir:Dot(v.Unit)
-			if dot > AIM_DOT and d < bestDist then
+			if dot > 0.96 and d < bestDist then
 				best = r
 				bestDist = d
 			end
@@ -252,7 +248,7 @@ end)
 RunService.RenderStepped:Connect(function()
 	if not aimOn then return end
 
-	local t = getTarget()
+	local t = getAimTarget()
 	if t then
 		local p = cam.CFrame.Position
 		cam.CFrame = cam.CFrame:Lerp(
@@ -262,9 +258,10 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
---------------------------------------------------
+-------------------------------------------------
 -- UI
---------------------------------------------------
+-------------------------------------------------
+
 Box:AddToggle('Aim', {
 	Text = 'Aimbot (E)',
 	Default = false,
@@ -316,12 +313,20 @@ Box:AddSlider('Speed', {
 	Callback = function(v) walkSpeed = v end
 })
 
---------------------------------------------------
+-------------------------------------------------
 -- UI settings
---------------------------------------------------
+-------------------------------------------------
+
 local Menu = Tabs.UI:AddLeftGroupbox('Menu')
-Menu:AddButton('Unload', function() Library:Unload() end)
-Menu:AddLabel('Menu key'):AddKeyPicker('MenuKey', { Default = 'End', NoUI = true })
+Menu:AddButton('Unload', function()
+	Library:Unload()
+end)
+
+Menu:AddLabel('Menu key'):AddKeyPicker('MenuKey', {
+	Default = 'End',
+	NoUI = true
+})
+
 Library.ToggleKeybind = Options.MenuKey
 
 ThemeManager:SetLibrary(Library)
