@@ -17,7 +17,7 @@ local mouse = plr:GetMouse()
 
 -- window
 local Window = Library:CreateWindow({
-	Title = 'Epstein Hub V2 | EARLY ACCESS',
+	Title = 'Epstein Hub V2 | EARLY ACCESS 1.1 |',
 	Center = true,
 	AutoShow = true
 })
