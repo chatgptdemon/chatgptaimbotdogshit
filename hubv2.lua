@@ -4,6 +4,8 @@ local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
 local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
 local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 
+--takes so fucking long to update holy shit
+
 -- services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
