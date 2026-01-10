@@ -4,13 +4,12 @@ local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
 local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
 local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 
---takes so fucking long to update holy shit
-
 -- services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
+
 
 -- player
 local plr = Players.LocalPlayer
@@ -34,6 +33,8 @@ local Box = Tabs.Main:AddLeftGroupbox('Main')
 -- state
 local aimOn = false
 local espOn = false
+local tpOn = false
+local noclip = false
 local infJump = false
 local walkSpeed = 16
 local espCache = {}
@@ -59,15 +60,25 @@ UIS.JumpRequest:Connect(function()
 	end
 end)
 
--- walkspeed loop
+-- walkspeed + noclip
 RunService.Stepped:Connect(function()
-	if hum() then
-		hum().WalkSpeed = walkSpeed
+	local h = hum()
+	if h then
+		h.WalkSpeed = walkSpeed
+	end
+
+	if noclip and char() then
+		for _, p in ipairs(char():GetDescendants()) do
+			if p:IsA("BasePart") then
+				p.CanCollide = false
+			end
+		end
 	end
 end)
 
 -- click tp (right click)
 mouse.Button2Down:Connect(function()
+	if not tpOn then return end
 	if mouse.Hit and char() then
 		local hrp = char():FindFirstChild("HumanoidRootPart")
 		if hrp then
@@ -78,23 +89,35 @@ end)
 
 -- esp
 local function addEsp(m)
-	if espCache[m] or not espOn then return end
+	if not espOn or espCache[m] then return end
 	espCache[m] = true
 
 	for _, p in ipairs(m:GetDescendants()) do
 		if p:IsA("BasePart") then
 			local b = Instance.new("BoxHandleAdornment")
-			b.Size = p.Size
 			b.Adornee = p
+			b.Size = p.Size
 			b.Color3 = Color3.new(1, 0, 0)
 			b.Transparency = 0.5
 			b.AlwaysOnTop = true
+			b.ZIndex = 5
 			b.Parent = p
 		end
 	end
 end
 
--- aimbot
+local function clearEsp()
+	for m in pairs(espCache) do
+		for _, p in ipairs(m:GetDescendants()) do
+			if p:IsA("BoxHandleAdornment") then
+				p:Destroy()
+			end
+		end
+	end
+	espCache = {}
+end
+
+-- aimbot target
 local function getTarget()
 	local best, dist = nil, math.huge
 	local pos = cam.CFrame.Position
@@ -105,10 +128,10 @@ local function getTarget()
 			local h = m:FindFirstChildOfClass("Humanoid")
 			local r = root(m)
 			if h and r and h.Health > 0 then
-				local diff = r.Position - pos
-				local d = diff.Magnitude
+				local dVec = r.Position - pos
+				local d = dVec.Magnitude
 				if d < 300 then
-					local dot = dir:Dot(diff.Unit)
+					local dot = dir:Dot(dVec.Unit)
 					if dot > 0.96 and d < dist then
 						best = r
 						dist = d
@@ -122,7 +145,7 @@ local function getTarget()
 	return best
 end
 
--- aim key
+-- aimbot key
 UIS.InputBegan:Connect(function(i, g)
 	if g then return end
 	if i.KeyCode == Enum.KeyCode.E then
@@ -154,8 +177,24 @@ Box:AddToggle('ESP', {
 	Callback = function(v)
 		espOn = v
 		if not v then
-			espCache = {}
+			clearEsp()
 		end
+	end
+})
+
+Box:AddToggle('TP', {
+	Text = 'Click TP',
+	Default = false,
+	Callback = function(v)
+		tpOn = v
+	end
+})
+
+Box:AddToggle('Noclip', {
+	Text = 'Noclip',
+	Default = false,
+	Callback = function(v)
+		noclip = v
 	end
 })
 
