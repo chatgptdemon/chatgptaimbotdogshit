@@ -41,12 +41,14 @@ local walkSpeed = 16
 local espCache = {}
 local tracers = {}
 
--- tuning (IMPORTANT)
-local AIM_FOV_DOT = 0.965
+-- tuning
 local AIM_RANGE = 300
-local AIM_SMOOTH = 0.6 -- very light smoothing, accurate
+local AIM_DOT = 0.965
+local AIM_SMOOTH = 0.6 -- very light smoothing
 
+--------------------------------------------------
 -- helpers
+--------------------------------------------------
 local function char()
 	return plr.Character
 end
@@ -55,24 +57,37 @@ local function hum()
 	return char() and char():FindFirstChildOfClass("Humanoid")
 end
 
-local function root(m)
+-- R15 + R6 safe root resolver
+local function getPart(m)
 	return m:FindFirstChild("Head")
+		or m:FindFirstChild("UpperTorso")
+		or m:FindFirstChild("LowerTorso")
 		or m:FindFirstChild("HumanoidRootPart")
+		or m:FindFirstChild("Torso")
 end
 
-local function sameTeam(model)
-	local p = Players:GetPlayerFromCharacter(model)
+local function alive(m)
+	local h = m:FindFirstChildOfClass("Humanoid")
+	return h and h.Health > 0
+end
+
+local function sameTeam(m)
+	local p = Players:GetPlayerFromCharacter(m)
 	return p and p.Team == plr.Team
 end
 
+--------------------------------------------------
 -- infinite jump
+--------------------------------------------------
 UIS.JumpRequest:Connect(function()
 	if infJump and hum() then
 		hum():ChangeState(Enum.HumanoidStateType.Jumping)
 	end
 end)
 
+--------------------------------------------------
 -- walkspeed + noclip
+--------------------------------------------------
 RunService.Stepped:Connect(function()
 	if hum() then
 		hum().WalkSpeed = walkSpeed
@@ -87,7 +102,9 @@ RunService.Stepped:Connect(function()
 	end
 end)
 
--- click tp
+--------------------------------------------------
+-- click TP
+--------------------------------------------------
 mouse.Button2Down:Connect(function()
 	if not tpOn then return end
 	if mouse.Hit and char() then
@@ -98,7 +115,9 @@ mouse.Button2Down:Connect(function()
 	end
 end)
 
+--------------------------------------------------
 -- ESP
+--------------------------------------------------
 local function addEsp(m)
 	if espCache[m] then return end
 	espCache[m] = true
@@ -129,14 +148,19 @@ local function clearEsp()
 	espCache = {}
 end
 
--- tracers
-local function getTracer(m)
+--------------------------------------------------
+-- Tracers (R15 safe)
+--------------------------------------------------
+local function addTracer(m)
 	if tracers[m] then return end
+
+	local r = getPart(m)
+	if not r then return end
 
 	local a0 = Instance.new("Attachment")
 	local a1 = Instance.new("Attachment")
 	a0.Parent = cam
-	a1.Parent = root(m)
+	a1.Parent = r
 
 	local beam = Instance.new("Beam")
 	beam.Attachment0 = a0
@@ -161,15 +185,15 @@ local function clearTracers()
 	tracers = {}
 end
 
+--------------------------------------------------
 -- target scan (players + NPCs)
+--------------------------------------------------
 local function scan(cb)
 	for _, m in ipairs(Workspace:GetChildren()) do
 		if m:IsA("Model") and m ~= char() then
-			local h = m:FindFirstChildOfClass("Humanoid")
-			local r = root(m)
-
-			if h and r and h.Health > 0 then
-				if not sameTeam(m) then
+			if alive(m) and not sameTeam(m) then
+				local r = getPart(m)
+				if r then
 					cb(m, r)
 				end
 			end
@@ -177,7 +201,9 @@ local function scan(cb)
 	end
 end
 
--- ESP + Tracers loop
+--------------------------------------------------
+-- ESP / Tracers loop
+--------------------------------------------------
 RunService.RenderStepped:Connect(function()
 	if not espOn and not tracerOn then return end
 
@@ -185,15 +211,16 @@ RunService.RenderStepped:Connect(function()
 		if espOn then
 			addEsp(m)
 		end
-
 		if tracerOn then
-			getTracer(m)
+			addTracer(m)
 		end
 	end)
 end)
 
--- aimbot target
-local function getAimTarget()
+--------------------------------------------------
+-- Aimbot
+--------------------------------------------------
+local function getTarget()
 	local best, bestDist
 	bestDist = math.huge
 
@@ -205,7 +232,7 @@ local function getAimTarget()
 		local d = v.Magnitude
 		if d < AIM_RANGE then
 			local dot = camDir:Dot(v.Unit)
-			if dot > AIM_FOV_DOT and d < bestDist then
+			if dot > AIM_DOT and d < bestDist then
 				best = r
 				bestDist = d
 			end
@@ -215,7 +242,6 @@ local function getAimTarget()
 	return best
 end
 
--- keybind
 UIS.InputBegan:Connect(function(i, g)
 	if g then return end
 	if i.KeyCode == Enum.KeyCode.E then
@@ -223,11 +249,10 @@ UIS.InputBegan:Connect(function(i, g)
 	end
 end)
 
--- aimbot loop
 RunService.RenderStepped:Connect(function()
 	if not aimOn then return end
 
-	local t = getAimTarget()
+	local t = getTarget()
 	if t then
 		local p = cam.CFrame.Position
 		cam.CFrame = cam.CFrame:Lerp(
@@ -237,7 +262,9 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
+--------------------------------------------------
 -- UI
+--------------------------------------------------
 Box:AddToggle('Aim', {
 	Text = 'Aimbot (E)',
 	Default = false,
@@ -289,13 +316,14 @@ Box:AddSlider('Speed', {
 	Callback = function(v) walkSpeed = v end
 })
 
+--------------------------------------------------
 -- UI settings
+--------------------------------------------------
 local Menu = Tabs.UI:AddLeftGroupbox('Menu')
 Menu:AddButton('Unload', function() Library:Unload() end)
 Menu:AddLabel('Menu key'):AddKeyPicker('MenuKey', { Default = 'End', NoUI = true })
 Library.ToggleKeybind = Options.MenuKey
 
--- managers
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 SaveManager:IgnoreThemeSettings()
