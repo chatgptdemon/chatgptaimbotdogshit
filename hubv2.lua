@@ -41,6 +41,11 @@ local walkSpeed = 16
 local espCache = {}
 local tracers = {}
 
+-- tuning (IMPORTANT)
+local AIM_FOV_DOT = 0.965
+local AIM_RANGE = 300
+local AIM_SMOOTH = 0.6 -- very light smoothing, accurate
+
 -- helpers
 local function char()
 	return plr.Character
@@ -53,6 +58,11 @@ end
 local function root(m)
 	return m:FindFirstChild("Head")
 		or m:FindFirstChild("HumanoidRootPart")
+end
+
+local function sameTeam(model)
+	local p = Players:GetPlayerFromCharacter(model)
+	return p and p.Team == plr.Team
 end
 
 -- infinite jump
@@ -88,7 +98,7 @@ mouse.Button2Down:Connect(function()
 	end
 end)
 
--- esp
+-- ESP
 local function addEsp(m)
 	if espCache[m] then return end
 	espCache[m] = true
@@ -121,7 +131,7 @@ end
 
 -- tracers
 local function getTracer(m)
-	if tracers[m] then return tracers[m] end
+	if tracers[m] then return end
 
 	local a0 = Instance.new("Attachment")
 	local a1 = Instance.new("Attachment")
@@ -140,7 +150,6 @@ local function getTracer(m)
 	beam.Parent = cam
 
 	tracers[m] = { beam, a0, a1 }
-	return tracers[m]
 end
 
 local function clearTracers()
@@ -152,24 +161,27 @@ local function clearTracers()
 	tracers = {}
 end
 
--- target scan (shared)
-local function scanTargets(cb)
+-- target scan (players + NPCs)
+local function scan(cb)
 	for _, m in ipairs(Workspace:GetChildren()) do
 		if m:IsA("Model") and m ~= char() then
 			local h = m:FindFirstChildOfClass("Humanoid")
 			local r = root(m)
+
 			if h and r and h.Health > 0 then
-				cb(m, r)
+				if not sameTeam(m) then
+					cb(m, r)
+				end
 			end
 		end
 	end
 end
 
--- esp + tracers loop (INDEPENDENT)
+-- ESP + Tracers loop
 RunService.RenderStepped:Connect(function()
 	if not espOn and not tracerOn then return end
 
-	scanTargets(function(m, r)
+	scan(function(m)
 		if espOn then
 			addEsp(m)
 		end
@@ -180,20 +192,22 @@ RunService.RenderStepped:Connect(function()
 	end)
 end)
 
--- aimbot
+-- aimbot target
 local function getAimTarget()
-	local best, dist = nil, math.huge
-	local pos = cam.CFrame.Position
-	local dir = cam.CFrame.LookVector
+	local best, bestDist
+	bestDist = math.huge
 
-	scanTargets(function(_, r)
-		local v = r.Position - pos
+	local camPos = cam.CFrame.Position
+	local camDir = cam.CFrame.LookVector
+
+	scan(function(_, r)
+		local v = r.Position - camPos
 		local d = v.Magnitude
-		if d < 300 then
-			local dot = dir:Dot(v.Unit)
-			if dot > 0.96 and d < dist then
+		if d < AIM_RANGE then
+			local dot = camDir:Dot(v.Unit)
+			if dot > AIM_FOV_DOT and d < bestDist then
 				best = r
-				dist = d
+				bestDist = d
 			end
 		end
 	end)
@@ -201,6 +215,7 @@ local function getAimTarget()
 	return best
 end
 
+-- keybind
 UIS.InputBegan:Connect(function(i, g)
 	if g then return end
 	if i.KeyCode == Enum.KeyCode.E then
@@ -208,12 +223,17 @@ UIS.InputBegan:Connect(function(i, g)
 	end
 end)
 
+-- aimbot loop
 RunService.RenderStepped:Connect(function()
 	if not aimOn then return end
+
 	local t = getAimTarget()
 	if t then
 		local p = cam.CFrame.Position
-		cam.CFrame = cam.CFrame:Lerp(CFrame.new(p, t.Position), 0.18)
+		cam.CFrame = cam.CFrame:Lerp(
+			CFrame.new(p, t.Position),
+			AIM_SMOOTH
+		)
 	end
 end)
 
@@ -269,7 +289,7 @@ Box:AddSlider('Speed', {
 	Callback = function(v) walkSpeed = v end
 })
 
--- ui settings
+-- UI settings
 local Menu = Tabs.UI:AddLeftGroupbox('Menu')
 Menu:AddButton('Unload', function() Library:Unload() end)
 Menu:AddLabel('Menu key'):AddKeyPicker('MenuKey', { Default = 'End', NoUI = true })
